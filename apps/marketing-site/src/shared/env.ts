@@ -40,8 +40,24 @@ export interface Env {
    * 403 on an account with no verified domains, which is the state this was
    * wired up in. Falls back to Resend's shared test sender, which needs no
    * domain verification but can only deliver to the account owner's own
-   * address; that constraint is satisfied here because
-   * MARKETING_SITE_CONTACT_INBOX_EMAIL is that same address.
+   * address.
+   *
+   * That fallback is only safe while MARKETING_SITE_CONTACT_INBOX_EMAIL is
+   * that same owner address, and it no longer is: the inbox is
+   * hello@tradyperch.com. Treat the two as a matched pair — an inbox that is
+   * not the Resend account owner's own address REQUIRES a verified sender
+   * domain here, or every submission fails with
+   *
+   *   403 validation_error — "You can only send testing emails to your own
+   *   email address (...)"
+   *
+   * which the route surfaces as a 502, losing the visitor's message.
+   *
+   * tradyperch.com was verified in Resend on 2026-07-31, so production sets
+   * this to an address on that domain and the pair is consistent. The failure
+   * mode to guard against now is the reverse of the original one: clearing
+   * this variable would silently drop the sender back to the shared test
+   * address, which cannot deliver to hello@.
    */
   MARKETING_SITE_RESEND_FROM_EMAIL: string;
 }
